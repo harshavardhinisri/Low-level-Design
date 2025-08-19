@@ -62,3 +62,8 @@ if __name__ == "__main__":
     pizza = Pepperoni(pizza)
     pizza = Veggies(pizza)
     print(pizza.get_description(), "Cost:", pizza.get_cost())
+
+
+# Only decorators need an __init__ that takes a pizza, because they wrap another pizza.
+# Base pizzas and abstract class don’t wrap anything, so they don’t need this.
+# This is the core idea of the Decorator Pattern: decorators hold a reference to the object they are decorating.
