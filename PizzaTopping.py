@@ -1,75 +1,64 @@
 from abc import ABC, abstractmethod
 
-# Base Pizza class
-class Pizza:
-    def __init__(self, size):
-        self.size = size
-        self.toppings = []
-
-    def add_topping(self, topping):
-        self.toppings.append(topping)
-
-    def __str__(self):
-        return f"Pizza(size={self.size}, toppings={self.toppings})"
-
-# Abstract Builder
-class PizzaBuilder(ABC):
+# Component
+class Pizza(ABC):
     @abstractmethod
-    def add_cheese(self):
+    def get_description(self) -> str:
         pass
 
     @abstractmethod
-    def add_pepperoni(self):
+    def get_cost(self) -> float:
+        pass
+
+# Concrete Component
+class Margherita(Pizza):
+    def get_description(self) -> str:
+        return "Margherita Pizza"
+
+    def get_cost(self) -> float:
+        return 5.0
+
+# Decorator
+class ToppingDecorator(Pizza, ABC):
+    def __init__(self, pizza: Pizza):
+        self.pizza = pizza
+
+    @abstractmethod
+    def get_description(self) -> str:
         pass
 
     @abstractmethod
-    def add_veggies(self):
+    def get_cost(self) -> float:
         pass
 
-    @abstractmethod
-    def build(self):
-        pass
+# Concrete Decorators
+class Cheese(ToppingDecorator):
+    def get_description(self) -> str:
+        return self.pizza.get_description() + ", Cheese"
 
-# Concrete Builder
-class CustomPizzaBuilder(PizzaBuilder):
-    def __init__(self, size):
-        self.pizza = Pizza(size)
+    def get_cost(self) -> float:
+        return self.pizza.get_cost() + 1.5
 
-    def add_cheese(self):
-        self.pizza.add_topping("Cheese")
-        return self  # allows chaining
+class Pepperoni(ToppingDecorator):
+    def get_description(self) -> str:
+        return self.pizza.get_description() + ", Pepperoni"
 
-    def add_pepperoni(self):
-        self.pizza.add_topping("Pepperoni")
-        return self
+    def get_cost(self) -> float:
+        return self.pizza.get_cost() + 2.0
 
-    def add_veggies(self):
-        self.pizza.add_topping("Veggies")
-        return self
+class Veggies(ToppingDecorator):
+    def get_description(self) -> str:
+        return self.pizza.get_description() + ", Veggies"
 
-    def build(self):
-        return self.pizza
+    def get_cost(self) -> float:
+        return self.pizza.get_cost() + 1.0
 
-# Director (optional, helps build standard pizzas)
-class PizzaDirector:
-    def __init__(self, builder):
-        self.builder = builder
-
-    def make_margherita(self):
-        return self.builder.add_cheese().build()
-
-    def make_pepperoni_pizza(self):
-        return self.builder.add_cheese().add_pepperoni().build()
-
-    def make_veggie_pizza(self):
-        return self.builder.add_cheese().add_veggies().build()
-
-
-# ====== Usage ======
+# Client code
 if __name__ == "__main__":
-    builder = CustomPizzaBuilder("Medium")
-    margherita = PizzaDirector(builder).make_margherita()
-    print(margherita)
+    pizza = Margherita()
+    print(pizza.get_description(), "Cost:", pizza.get_cost())
 
-    custom_pizza = CustomPizzaBuilder("Large").add_cheese().add_pepperoni().add_veggies().build()
-    print(custom_pizza)
+    pizza = Cheese(pizza)
+    pizza = Pepperoni(pizza)
+    pizza = Veggies(pizza)
+    print(pizza.get_description(), "Cost:", pizza.get_cost())
