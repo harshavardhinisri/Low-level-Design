@@ -24,6 +24,10 @@ class Divide(Operation):
         if b == 0:
             raise ValueError("Cannot divide by zero")
         return a / b
+    
+class Mod(Operation):
+    def execute(self, a, b):
+        return a % b
 
 # Context
 class Calculator:
@@ -49,3 +53,6 @@ if __name__ == "__main__":
 
     calc.set_strategy(Divide())
     print("10 / 2 =", calc.calculate(10, 2))
+
+    calc.set_strategy(Mod())
+    print("10 % 2 =", calc.calculate(10, 2))
