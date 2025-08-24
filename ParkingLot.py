@@ -1,17 +1,32 @@
 from abc import ABC, abstractmethod
+import threading
 
-# Vehicle Types
+# ----------- Vehicle Types -----------
 class VehicleType:
     CAR = "Car"
     BIKE = "Bike"
 
-# Vehicle
+# ----------- Vehicle -----------
 class Vehicle:
     def __init__(self, vehicle_type, plate_number):
         self.vehicle_type = vehicle_type
         self.plate_number = plate_number
 
-# Parking Spot
+# ----------- Vehicle Factory -----------
+class VehicleFactory:
+    vehicle_map = {
+        "car": VehicleType.CAR,
+        "bike": VehicleType.BIKE
+    }
+
+    @staticmethod
+    def create_vehicle(vehicle_type: str, plate_number: str) -> Vehicle:
+        vt = VehicleFactory.vehicle_map.get(vehicle_type.lower())
+        if not vt:
+            raise ValueError(f"Unknown vehicle type: {vehicle_type}")
+        return Vehicle(vt, plate_number)
+
+# ----------- Parking Spot -----------
 class ParkingSpot:
     def __init__(self, spot_id, vehicle_type):
         self.spot_id = spot_id
@@ -19,7 +34,7 @@ class ParkingSpot:
         self.is_free = True
         self.vehicle = None
 
-    def park(self, vehicle):
+    def park(self, vehicle: Vehicle):
         if self.is_free and self.vehicle_type == vehicle.vehicle_type:
             self.vehicle = vehicle
             self.is_free = False
@@ -30,43 +45,54 @@ class ParkingSpot:
         self.vehicle = None
         self.is_free = True
 
-# Strategy Pattern - Parking Strategy
+# ----------- Strategy Pattern -----------
 class ParkingStrategy(ABC):
     @abstractmethod
-    def find_spot(self, spots, vehicle):
+    def find_spot(self, spots, vehicle: Vehicle):
         pass
 
 class NearestSpotStrategy(ParkingStrategy):
-    def find_spot(self, spots, vehicle):
+    def find_spot(self, spots, vehicle: Vehicle):
         for spot in spots:
             if spot.is_free and spot.vehicle_type == vehicle.vehicle_type:
                 return spot
         return None
 
-# Singleton ParkingLot
+# ----------- Singleton Parking Lot -----------
 class ParkingLot:
     __instance = None
+    __lock = threading.Lock()
 
-    def __new__(cls, num_car_spots, num_bike_spots, strategy=None):
+    def __init__(self, num_car_spots: int = 0, num_bike_spots: int = 0, strategy: ParkingStrategy = None):
+        if ParkingLot.__instance is not None:
+            raise Exception("Use get_instance() instead of creating ParkingLot directly")
+        self.__spots = []
+        self.__spots += [ParkingSpot(f"C{i}", VehicleType.CAR) for i in range(num_car_spots)]
+        self.__spots += [ParkingSpot(f"B{i}", VehicleType.BIKE) for i in range(num_bike_spots)]
+        self.strategy = strategy or NearestSpotStrategy()
+
+    @classmethod
+    def get_instance(cls, num_car_spots: int = 0, num_bike_spots: int = 0, strategy: ParkingStrategy = None):
         if cls.__instance is None:
-            cls.__instance = super().__new__(cls) #calls the parent (object) class’s __new__ method, 
-            #which actually allocates memory for the new instance of cls
-            cls.__instance.spots = []
-            cls.__instance.spots += [ParkingSpot(f"C{i}", VehicleType.CAR) for i in range(num_car_spots)]
-            cls.__instance.spots += [ParkingSpot(f"B{i}", VehicleType.BIKE) for i in range(num_bike_spots)]
-            cls.__instance.strategy = strategy or NearestSpotStrategy()
+            with cls.__lock:
+                if cls.__instance is None:
+                    cls.__instance = super(ParkingLot, cls).__new__(cls)
+                    cls.__instance.__spots = []
+                    cls.__instance.__spots += [ParkingSpot(f"C{i}", VehicleType.CAR) for i in range(num_car_spots)]
+                    cls.__instance.__spots += [ParkingSpot(f"B{i}", VehicleType.BIKE) for i in range(num_bike_spots)]
+                    cls.__instance.strategy = strategy or NearestSpotStrategy()
         return cls.__instance
 
-    def park_vehicle(self, vehicle):
-        spot = self.strategy.find_spot(self.spots, vehicle)
+    def park_vehicle(self, vehicle: Vehicle):
+        spot = self.strategy.find_spot(self.__spots, vehicle)
         if spot and spot.park(vehicle):
             print(f"{vehicle.vehicle_type} {vehicle.plate_number} parked at spot {spot.spot_id}")
             return True
         print(f"No available spot for {vehicle.vehicle_type} {vehicle.plate_number}")
         return False
 
-    def leave_spot(self, spot_id):
-        for spot in self.spots:
+    def leave_spot(self, spot_id: str):
+        for spot in self.__spots:
             if spot.spot_id == spot_id:
                 spot.leave()
                 print(f"Spot {spot_id} is now free")
@@ -74,20 +100,26 @@ class ParkingLot:
         print(f"Spot {spot_id} not found")
         return False
 
-# --- Client code ---
+# ----------- Client Code (No direct object creation) -----------
 if __name__ == "__main__":
-    lot = ParkingLot(2, 2)  # Singleton instance
-    lot2 = ParkingLot(5, 5) # Will still return same instance as `lot`
+    lot = ParkingLot.get_instance(num_car_spots=2, num_bike_spots=2)  # Singleton accessor
 
-    car1 = Vehicle(VehicleType.CAR, "CAR123")
-    bike1 = Vehicle(VehicleType.BIKE, "BIKE123")
-    car2 = Vehicle(VehicleType.CAR, "CAR999")
+    # Create vehicles via factory
+    vehicles_to_park = [
+        ("car", "CAR123"),
+        ("bike", "BIKE123"),
+        ("car", "CAR999")
+    ]
+    vehicles = [VehicleFactory.create_vehicle(v_type, plate) for v_type, plate in vehicles_to_park]
 
-    lot.park_vehicle(car1)
-    lot.park_vehicle(bike1)
-    lot.park_vehicle(car2)
+    # Park vehicles
+    for v in vehicles:
+        lot.park_vehicle(v)
 
+    # Leave a spot
     lot.leave_spot("C0")
 
     # Check Singleton behavior
+    lot2 = ParkingLot.get_instance()
     print("lot and lot2 are same:", lot is lot2)
+
