@@ -81,12 +81,13 @@ class Library:
         self.__users.append(user)
 
     def borrow_book(self, user, book):
-        if book in self.__books:
-            duration = user.policy.borrow_duration()
-            print(f"{user.name} borrowed '{book.title}' for {duration} days")
-            self.__books.remove(book)
-        else:
-            print(f"Book '{book.title}' is not available")
+        for b in self.__books:
+            if b.title == book.title:
+                duration = user.policy.borrow_duration()
+                print(f"{user.name} borrowed '{b.title}' for {duration} days")
+                self.__books.remove(b)
+                return
+        print(f"Book '{book.title}' is not available")
 
 # ----------- User Factory -----------
 class User:
