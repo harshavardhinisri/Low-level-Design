@@ -102,11 +102,6 @@ class PizzaOrderManager:
     __instance = None
     __lock = threading.Lock()
 
-    def __init__(self):
-        if PizzaOrderManager.__instance is not None:
-            raise Exception("Use get_instance() instead of creating PizzaOrderManager directly")
-        self.__orders = []
-
     @classmethod
     def get_instance(cls):
         if cls.__instance is None:
